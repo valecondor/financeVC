@@ -75,4 +75,19 @@ function compare(){
  $('fxDetails').innerHTML=cur==='EUR'&&fxRows.length?'<strong>Impatto del cambio, investimento unico (senza PAC)</strong><div class="tablewrap"><table><thead><tr><th>ETF</th><th>EUR/USD iniziale</th><th>EUR/USD finale</th><th>Rend. prezzo USD</th><th>Rend. convertito EUR</th><th>Effetto valuta isolato</th></tr></thead><tbody>'+fxRows.map(r=>`<tr><td>${ETFs[r.sym]} (${r.sym})</td><td>${r.startRate.toFixed(4)}</td><td>${r.endRate.toFixed(4)}</td><td>${pct(r.usdReturn)}</td><td>${pct(r.eurReturn)}</td><td>${pct(r.fxEffect)}</td></tr>`).join('')+'</tbody></table></div><p>L’effetto valuta è la variazione del valore in euro di un dollaro: cambio iniziale ÷ cambio finale − 1. Si combina moltiplicativamente con il rendimento in USD, non si somma. Con PAC, i singoli versamenti subiscono cambi diversi: il riepilogo sopra include tali conversioni.</p>': 'Seleziona EUR e calcola per vedere l’impatto del cambio.';
  $('status').textContent=results.length?`${results.length} ETF confrontati. ${fail.length?'Non disponibili: '+fail.join('; '):''}`:'Nessun ETF confrontabile. '+fail.join('; ');$('status').className=results.length?'ok':'error';
 }
-function project(){let a=Math.max(0,Number($('futureAmount').value)||0),m=Math.max(0,Number($('monthly').value)||0),n=Math.min(50,Math.max(1,Number($('years').value)||10));let lines=[.03,.06,.09].map((r,i)=>{let rm=Math.pow(1
+function project(){
+ const a=Math.max(0,Number($('futureAmount').value)||0),m=Math.max(0,Number($('monthly').value)||0),n=Math.min(50,Math.max(1,Number($('years').value)||10));
+ const lines=[.03,.06,.09].map((r,i)=>{
+  const rm=Math.pow(1+r,1/12)-1;let v=a;const values=[[0,v]];
+  for(let month=1;month<=n*12;month++){v=v*(1+rm)+m;if(month%12===0)values.push([month/12,v]);}
+  return {label:`Scenario ${(r*100).toFixed(0)}% annuo`,color:colors[i],values,final:v,rate:r};
+ });
+ render('futureChart',lines);legend('futureLegend',lines);
+ const invested=a+m*n*12;
+ $('futureTable').innerHTML='<table><thead><tr><th>Scenario</th><th>Capitale versato</th><th>Valore finale lordo</th><th>Guadagno ipotetico</th></tr></thead><tbody>'+lines.map(l=>`<tr><td>${l.label}</td><td>${money(invested)}</td><td>${money(l.final)}</td><td>${money(l.final-invested)}</td></tr>`).join('')+'</tbody></table>';
+}
+$('compare').addEventListener('click',compare);
+$('reload').addEventListener('click',async()=>{await load();if(dataset)compare();});
+$('project').addEventListener('click',project);
+load().then(()=>{if(dataset)compare();});
+</script></body></html>
